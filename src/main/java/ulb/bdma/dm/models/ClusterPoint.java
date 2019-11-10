@@ -39,7 +39,7 @@ public class ClusterPoint {
         this.state = State.NOISE;
     }
 
-    public boolean unvisited() {
-        return this.state == State.UNVISITED;
+    public boolean visited() {
+        return this.state == State.VISITED;
     }
 }

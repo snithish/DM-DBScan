@@ -1,5 +1,6 @@
 package ulb.bdma.dm.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import ulb.bdma.dm.contract.DBScan;
@@ -18,13 +19,30 @@ public class NaiveDBScan implements DBScan {
     @Override
     public List<List<DistanceMeasurable>> cluster(
             float epsilon, int minimumPoints, List<DistanceMeasurable> dataPoints) {
+        List<List<DistanceMeasurable>> clusters = new ArrayList<>();
         List<ClusterPoint> clusterPoints =
                 dataPoints.stream().map(ClusterPoint::new).collect(Collectors.toList());
-        for (ClusterPoint clusterPoint : clusterPoints) {
-            clusterPoint.visit();
+        for (var clusterPoint : clusterPoints) {
             List<ClusterPoint> neighbours =
-                    clusterPoint.getNearestNeighbours(clusterPoints, epsilon);
+                    visitAndGetNeighbours(epsilon, clusterPoints, clusterPoint);
+            if (neighbours.size() < minimumPoints) {
+                clusterPoint.noise();
+            } else {
+                List<DistanceMeasurable> newCluster = new ArrayList<>();
+                for (var neighbour : neighbours) {
+                    if (!neighbour.visited()) {
+                        var neighbourOfNeighbours =
+                                visitAndGetNeighbours(epsilon, clusterPoints, neighbour);
+                    }
+                }
+            }
         }
         return null;
+    }
+
+    private List<ClusterPoint> visitAndGetNeighbours(
+            float epsilon, List<ClusterPoint> clusterPoints, ClusterPoint clusterPoint) {
+        clusterPoint.visit();
+        return clusterPoint.getNearestNeighbours(clusterPoints, epsilon);
     }
 }
