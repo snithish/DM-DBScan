@@ -1,7 +1,6 @@
 package ulb.bdma.dm.impl;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import ulb.bdma.dm.contract.DBScan;
 import ulb.bdma.dm.contract.DistanceMeasurable;
 import ulb.bdma.dm.models.ClusterPoint;
@@ -33,18 +32,29 @@ public class NaiveDBScan extends DBScan {
             if (!clusterPoint.unvisited()) {
                 continue;
             }
-            List<ClusterPoint> neighbours = getNeighboursByVisiting(clusterPoint);
+            Queue<ClusterPoint> neighbours =
+                    new LinkedList<>(getNeighboursByVisiting(clusterPoint));
             if (!isCorePoint(neighbours)) {
                 clusterPoint.noise();
                 continue;
             }
             List<DistanceMeasurable> newCluster = new ArrayList<>();
-            for (var neighbour : neighbours) {
+            while (!neighbours.isEmpty()) {
+                var neighbour = neighbours.poll();
                 if (!neighbour.visited()) {
-                    var neighbourOfNeighbours = getNeighboursByVisiting(neighbour);
+                    List<ClusterPoint> neighbourOfNeighbours = getNeighboursByVisiting(neighbour);
+                    if (isCorePoint(neighbourOfNeighbours)) {
+                        neighbours.addAll(neighbourOfNeighbours);
+                    }
+                }
+                if (!neighbour.isAssignedToCluster()) {
+                    neighbour.assignToCluster();
+                    newCluster.add(neighbour.getDataPoint());
                 }
             }
+            newCluster.add(clusterPoint.getDataPoint());
+            clusters.add(newCluster);
         }
-        return null;
+        return clusters;
     }
 }

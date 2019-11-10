@@ -1,5 +1,6 @@
 package ulb.bdma.dm.contract;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import ulb.bdma.dm.models.ClusterPoint;
@@ -24,7 +25,7 @@ public abstract class DBScan {
                 dataPoints.stream().map(ClusterPoint::new).collect(Collectors.toList());
     }
 
-    protected boolean isCorePoint(List<ClusterPoint> neighbours) {
+    protected boolean isCorePoint(Collection<ClusterPoint> neighbours) {
         return neighbours.size() >= minimumPoints;
     }
 

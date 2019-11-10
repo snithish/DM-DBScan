@@ -5,12 +5,14 @@ import java.util.stream.Collectors;
 import ulb.bdma.dm.contract.DistanceMeasurable;
 
 public class ClusterPoint {
+    private boolean assignedToCluster;
     private DistanceMeasurable dataPoint;
     private State state;
 
     public ClusterPoint(DistanceMeasurable dataPoint) {
         this.dataPoint = dataPoint;
         this.state = State.UNVISITED;
+        this.assignedToCluster = false;
     }
 
     public List<ClusterPoint> getNearestNeighbours(List<ClusterPoint> allPoints, float threshold) {
@@ -23,7 +25,7 @@ public class ClusterPoint {
                 .collect(Collectors.toList());
     }
 
-    private DistanceMeasurable getDataPoint() {
+    public DistanceMeasurable getDataPoint() {
         return dataPoint;
     }
 
@@ -45,5 +47,13 @@ public class ClusterPoint {
 
     public boolean unvisited() {
         return this.state == State.UNVISITED;
+    }
+
+    public boolean isAssignedToCluster() {
+        return assignedToCluster;
+    }
+
+    public void assignToCluster() {
+        this.assignedToCluster = true;
     }
 }
