@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -20,7 +19,7 @@ class ClusterUtilityTest {
         List<DistanceMeasurable> allPoints = Collections.singletonList(point);
         List<DistanceMeasurable> actual =
                 ClusterUtility.getNearestNeighbours(point, allPoints, 1.0);
-        Assertions.assertEquals(0, actual.size());
+        assertThat(actual.size()).isEqualTo(0);
     }
 
     @Test
