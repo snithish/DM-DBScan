@@ -1,5 +1,7 @@
 package ulb.bdma.dm.models;
 
+import java.util.List;
+import java.util.stream.Collectors;
 import ulb.bdma.dm.contract.DistanceMeasurable;
 
 public class ClusterPoint {
@@ -11,7 +13,17 @@ public class ClusterPoint {
         this.state = State.UNVISITED;
     }
 
-    public DistanceMeasurable getDataPoint() {
+    public List<ClusterPoint> getNearestNeighbours(List<ClusterPoint> allPoints, float threshold) {
+        return allPoints.stream()
+                .filter(
+                        point ->
+                                !this.equals(point)
+                                        && this.getDataPoint().distance(point.getDataPoint())
+                                                <= threshold)
+                .collect(Collectors.toList());
+    }
+
+    private DistanceMeasurable getDataPoint() {
         return dataPoint;
     }
 
@@ -19,8 +31,12 @@ public class ClusterPoint {
         return state;
     }
 
-    public void markAsVisited() {
+    public void visit() {
         this.state = State.VISITED;
+    }
+
+    public void noise() {
+        this.state = State.NOISE;
     }
 
     public boolean unvisited() {
