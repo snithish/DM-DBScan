@@ -20,9 +20,12 @@ application {
 
 dependencies {
     testImplementation('org.junit.jupiter:junit-jupiter:5.5.2')
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.5.2'
     jmh 'org.openjdk.jmh:jmh-core:1.22'
     jmh 'org.openjdk.jmh:jmh-generator-annprocess:1.22'
-}
+    testImplementation('org.mockito:mockito-core:2.+')
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.1.0'
+    testImplementation("org.assertj:assertj-core:3.11.1")}
 
 test {
     useJUnitPlatform()
