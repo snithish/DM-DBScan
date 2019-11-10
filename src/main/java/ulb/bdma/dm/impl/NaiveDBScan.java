@@ -30,23 +30,18 @@ public class NaiveDBScan extends DBScan {
     public List<List<DistanceMeasurable>> cluster() {
         List<List<DistanceMeasurable>> clusters = new ArrayList<>();
         for (var clusterPoint : clusterPoints) {
-            List<ClusterPoint> neighbours = visitAndGetNeighbours(clusterPoint);
-            if (neighbours.size() < minimumPoints) {
+            List<ClusterPoint> neighbours = getNeighboursByVisiting(clusterPoint);
+            if (!isCorePoint(neighbours)) {
                 clusterPoint.noise();
-            } else {
-                List<DistanceMeasurable> newCluster = new ArrayList<>();
-                for (var neighbour : neighbours) {
-                    if (!neighbour.visited()) {
-                        var neighbourOfNeighbours = visitAndGetNeighbours(neighbour);
-                    }
+                continue;
+            }
+            List<DistanceMeasurable> newCluster = new ArrayList<>();
+            for (var neighbour : neighbours) {
+                if (!neighbour.visited()) {
+                    var neighbourOfNeighbours = getNeighboursByVisiting(neighbour);
                 }
             }
         }
         return null;
-    }
-
-    private List<ClusterPoint> visitAndGetNeighbours(ClusterPoint clusterPoint) {
-        clusterPoint.visit();
-        return clusterPoint.getNearestNeighbours(clusterPoints, epsilon);
     }
 }

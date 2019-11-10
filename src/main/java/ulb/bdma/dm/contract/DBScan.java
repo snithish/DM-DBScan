@@ -24,6 +24,15 @@ public abstract class DBScan {
                 dataPoints.stream().map(ClusterPoint::new).collect(Collectors.toList());
     }
 
+    protected boolean isCorePoint(List<ClusterPoint> neighbours) {
+        return neighbours.size() >= minimumPoints;
+    }
+
+    protected List<ClusterPoint> getNeighboursByVisiting(ClusterPoint clusterPoint) {
+        clusterPoint.visit();
+        return clusterPoint.getNearestNeighbours(clusterPoints, epsilon);
+    }
+
     /**
      * Clusters the given data points whose distance can be measured
      *
