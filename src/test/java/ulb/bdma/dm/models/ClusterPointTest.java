@@ -18,7 +18,7 @@ class ClusterPointTest {
         DistanceMeasurable point = mock(DistanceMeasurable.class);
         ClusterPoint clusterPoint = new ClusterPoint(point);
         List<ClusterPoint> allPoints = Collections.singletonList(clusterPoint);
-        List<ClusterPoint> actual = clusterPoint.getNearestNeighbours(allPoints, 1.0);
+        List<ClusterPoint> actual = clusterPoint.getNearestNeighbours(allPoints, (float) 1.0);
         assertThat(actual.size()).isEqualTo(0);
     }
 
@@ -36,7 +36,7 @@ class ClusterPointTest {
         when(point.distance(nearPoint)).thenReturn(9.9999);
         when(point.distance(farPoint)).thenReturn(10.00001);
 
-        List<ClusterPoint> actual = sourcePoint.getNearestNeighbours(allPoints, 10.0);
+        List<ClusterPoint> actual = sourcePoint.getNearestNeighbours(allPoints, (float) 10.0);
 
         assertThat(actual).containsOnly(nearClusterPoint);
     }
