@@ -2,9 +2,7 @@ package ulb.bdma.dm.contract;
 
 import java.util.List;
 
-/**
- * Representation of DBScan Clustering algorithms
- */
+/** Representation of DBScan Clustering algorithms */
 public interface DBScan {
     /**
      * Clusters the given data points whose distance can be measured
@@ -14,5 +12,6 @@ public interface DBScan {
      * @param dataPoints data that needs to be clustered
      * @return List of Clusters
      */
-    List<List<DistanceMeasurable>> cluster(float epsilon, int minimumPoints, List<DistanceMeasurable> dataPoints);
+    List<List<DistanceMeasurable>> cluster(
+            float epsilon, int minimumPoints, List<DistanceMeasurable> dataPoints);
 }

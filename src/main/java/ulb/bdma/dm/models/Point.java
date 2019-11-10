@@ -1,8 +1,7 @@
 package ulb.bdma.dm.models;
 
-import ulb.bdma.dm.contract.DistanceMeasurable;
-
 import java.util.Objects;
+import ulb.bdma.dm.contract.DistanceMeasurable;
 
 public class Point implements DistanceMeasurable {
     private Double x;
@@ -24,8 +23,7 @@ public class Point implements DistanceMeasurable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Point point = (Point) o;
-        return Objects.equals(x, point.x) &&
-                Objects.equals(y, point.y);
+        return Objects.equals(x, point.x) && Objects.equals(y, point.y);
     }
 
     @Override

@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'application'
     id "me.champeau.gradle.jmh" version "0.5.0"
+    id "com.diffplug.gradle.spotless" version "3.25.0"
 }
 
 group 'ulb.bdma.dm'
@@ -27,5 +28,11 @@ test {
     useJUnitPlatform()
     testLogging {
         events "passed", "skipped", "failed"
+    }
+}
+
+spotless {
+    java {
+        googleJavaFormat('1.7').aosp()
     }
 }
