@@ -42,4 +42,8 @@ public class ClusterPoint {
     public boolean visited() {
         return this.state == State.VISITED;
     }
+
+    public boolean unvisited() {
+        return this.state == State.UNVISITED;
+    }
 }
