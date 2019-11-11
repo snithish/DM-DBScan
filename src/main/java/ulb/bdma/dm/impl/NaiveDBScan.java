@@ -38,7 +38,8 @@ public class NaiveDBScan extends DBScan {
                 clusterPoint.noise();
                 continue;
             }
-            Set<DistanceMeasurable> newCluster = new HashSet<>();
+            List<DistanceMeasurable> newCluster = new ArrayList<>();
+            addToCluster(newCluster, clusterPoint);
             while (!neighbours.isEmpty()) {
                 var neighbour = neighbours.poll();
                 if (!neighbour.visited()) {
@@ -48,15 +49,18 @@ public class NaiveDBScan extends DBScan {
                     }
                 }
                 if (!neighbour.isAssignedToCluster()) {
-                    neighbour.assignToCluster();
-                    newCluster.add(neighbour.getDataPoint());
+                    addToCluster(newCluster, neighbour);
                 }
             }
-            newCluster.add(clusterPoint.getDataPoint());
-            clusters.add(List.copyOf(newCluster));
+            clusters.add(newCluster);
         }
         addNoiseAsClusters(clusters);
         return clusters;
+    }
+
+    private void addToCluster(Collection<DistanceMeasurable> newCluster, ClusterPoint neighbour) {
+        neighbour.assignToCluster();
+        newCluster.add(neighbour.getDataPoint());
     }
 
     private void addNoiseAsClusters(List<List<DistanceMeasurable>> clusters) {

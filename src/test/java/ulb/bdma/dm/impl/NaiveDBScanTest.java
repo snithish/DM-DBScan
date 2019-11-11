@@ -34,7 +34,7 @@ class NaiveDBScanTest {
     }
 
     @Test
-    void shouldReturnTreatDataPointAsNoiseWhenMinimumPointsNotPresentWithinEpsilon() {
+    void shouldTreatDataPointAsNoiseWhenMinimumPointsNotPresentWithinEpsilon() {
         Point point = new Point(3.0, 4.0);
         Point closePoint = new Point(3.1, 4.0);
         DBScan naiveDBScan = new NaiveDBScan((float) 1.4, 3, List.of(point, closePoint));
@@ -81,6 +81,19 @@ class NaiveDBScanTest {
         assertThat(clusters.get(0))
                 .containsExactlyInAnyOrderElementsOf(
                         List.of(point, closePoint, anotherClosePoint, closeToBorderPoint));
+    }
+
+    @Test
+    void shouldClusterDuplicatesInOneCluster() {
+        Point point = new Point(0.0, 0.0);
+
+        DBScan naiveDBScan = new NaiveDBScan((float) 1.0, 4, List.of(point, point, point, point));
+
+        List<List<DistanceMeasurable>> clusters = naiveDBScan.cluster();
+
+        assertThat(clusters.size()).isEqualTo(1);
+        assertThat(clusters.get(0))
+                .containsExactlyInAnyOrderElementsOf(List.of(point, point, point, point));
     }
 
     /**

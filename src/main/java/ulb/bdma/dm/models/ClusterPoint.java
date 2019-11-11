@@ -17,11 +17,7 @@ public class ClusterPoint {
 
     public List<ClusterPoint> getNearestNeighbours(List<ClusterPoint> allPoints, float threshold) {
         return allPoints.stream()
-                .filter(
-                        point ->
-                                !this.equals(point)
-                                        && this.getDataPoint().distance(point.getDataPoint())
-                                                <= threshold)
+                .filter(point -> this.getDataPoint().distance(point.getDataPoint()) <= threshold)
                 .collect(Collectors.toList());
     }
 
