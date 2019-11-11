@@ -54,4 +54,25 @@ class NaiveDBScanTest {
         assertThat(clusters)
                 .containsExactlyInAnyOrder(List.of(point, closePoint, pointWithDistance));
     }
+
+    @Test
+    void shouldExpandClusterWhenBorderPointIsAlsoACorePoint() {
+        Point point = new Point(0.0, 0.0);
+        Point closePoint = new Point(1.0, 0.0);
+        Point anotherClosePoint = new Point(-1.0, 0.0);
+        Point closeToBorderPoint = new Point(2.0, 0.0);
+
+        DBScan naiveDBScan =
+                new NaiveDBScan(
+                        (float) 1.0,
+                        3,
+                        List.of(point, closePoint, anotherClosePoint, closeToBorderPoint));
+
+        List<List<DistanceMeasurable>> clusters = naiveDBScan.cluster();
+
+        assertThat(clusters.size()).isEqualTo(1);
+        assertThat(clusters.get(0))
+                .containsExactlyInAnyOrderElementsOf(
+                        List.of(point, closePoint, anotherClosePoint, closeToBorderPoint));
+    }
 }
