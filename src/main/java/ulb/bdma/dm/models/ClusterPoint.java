@@ -56,4 +56,8 @@ public class ClusterPoint {
     public void assignToCluster() {
         this.assignedToCluster = true;
     }
+
+    public boolean isNoise() {
+        return this.state == State.NOISE;
+    }
 }

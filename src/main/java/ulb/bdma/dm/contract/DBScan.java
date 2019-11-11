@@ -26,7 +26,7 @@ public abstract class DBScan {
     }
 
     protected boolean isCorePoint(Collection<ClusterPoint> neighbours) {
-        return neighbours.size() >= minimumPoints;
+        return (neighbours.size() + 1) >= minimumPoints;
     }
 
     protected List<ClusterPoint> getNeighboursByVisiting(ClusterPoint clusterPoint) {
