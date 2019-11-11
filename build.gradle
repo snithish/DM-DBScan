@@ -34,6 +34,11 @@ test {
     }
 }
 
+jmh {
+    duplicateClassesStrategy = 'warn'
+    verbosity = 'EXTRA'
+}
+
 spotless {
     java {
         googleJavaFormat('1.7').aosp()
