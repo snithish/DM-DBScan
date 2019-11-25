@@ -1,9 +1,10 @@
-package ulb.bdma.dm.impl;
+    package ulb.bdma.dm.impl;
 
 import java.util.*;
 
 import ulb.bdma.dm.contract.DBScan;
 import ulb.bdma.dm.contract.DistanceMeasurable;
+import ulb.bdma.dm.contract.IntermediateCluster;
 import ulb.bdma.dm.models.ClusterPoint;
 
 /**
@@ -59,12 +60,20 @@ public class ParallelDBScan extends DBScan {
             if (!clusterPoint.visited()) {
                 continue;
             }
-            getNeighboursByVisiting(clusterPoint);
             Queue<ClusterPoint> neighbours =
                     new LinkedList<>(getNeighboursByVisiting(clusterPoint));
+            List<IntermediateCluster> clusters = new ArrayList<>();
             if (!isCorePoint(neighbours)) {
                 clusterPoint.noise();
                 continue;
+            }
+            // The point is core point hence, get all its neighbours
+            while (!neighbours.isEmpty()) {
+                var neighbour = neighbours.poll();
+                if ((!neighbour.visited()) && (partition.contains(neighbour))) {
+                    List<ClusterPoint> neighbourOfNeighbours = getNeighboursByVisiting(neighbour);
+                }
+            }
             }
             List<DistanceMeasurable> newCluster = new ArrayList<>();
             HashMap<String, String> clusters = new HashMap<String, String>();
