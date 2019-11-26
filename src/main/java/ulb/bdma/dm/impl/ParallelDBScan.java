@@ -73,18 +73,24 @@ public class ParallelDBScan extends DBScan {
                 if ((!neighbour.visited()) && (partition.contains(neighbour))) {
                     List<ClusterPoint> neighbourOfNeighbours = getNeighboursByVisiting(neighbour);
                 }
+                else{
+                    // check the definition of the lists inside IntermediateCluster Class
+                    //add to unseen list
             }
             }
             List<DistanceMeasurable> newCluster = new ArrayList<>();
-            HashMap<String, String> clusters = new HashMap<String, String>();
-            clusters.put("a","a1");
-
         }
     }
 
 
     private void partitionData() {
         partitions = new ArrayList<>();
+        //creating a HashMap with all the elements
+        HashMap<String, String> tree1 = new HashMap<>(clusterPoints.size());
+        for(var temp: clusterPoints){
+            tree1.put(temp.toString(),null);
+        }
+        // creating partitions of equal chunk size
         for (int start = 0, end = 0; end < clusterPoints.size(); start = start + chunkSize) {
             end = Math.min(clusterPoints.size(), start + chunkSize);
             partitions.add(clusterPoints.subList(start, end));
