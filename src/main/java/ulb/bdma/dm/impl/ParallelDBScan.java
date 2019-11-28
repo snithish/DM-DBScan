@@ -1,6 +1,7 @@
-    package ulb.bdma.dm.impl;
+package ulb.bdma.dm.impl;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import ulb.bdma.dm.contract.DBScan;
 import ulb.bdma.dm.contract.DistanceMeasurable;
@@ -18,8 +19,9 @@ import ulb.bdma.dm.models.ClusterPoint;
  * new scalable parallel DBSCAN algorithm using the disjoint-set data structure.</a>
  */
 public class ParallelDBScan extends DBScan {
-    int chunkSize = 3;
+    int chunkSize = 2;
     private List<List<ClusterPoint>> partitions;
+    HashMap<ClusterPoint, ClusterPoint> clusterAssignment;
 
     /**
      * Instantiate ParallelDBScan with parameters required for clustering
@@ -30,66 +32,93 @@ public class ParallelDBScan extends DBScan {
      */
     public ParallelDBScan(float epsilon, int minimumPoints, List<DistanceMeasurable> dataPoints) {
         super(epsilon, minimumPoints, dataPoints);
+        // creating a HashMap with all the elements
+        clusterAssignment = new HashMap<>(clusterPoints.size());
+        clusterPoints.stream().forEach(x -> clusterAssignment.put(x, null));
+        partitions = new ArrayList<>();
         partitionData();
     }
 
     @Override
     public List<List<DistanceMeasurable>> cluster() {
-        partitions.stream().parallel().map(partition -> {
-            blah(partition);
-            return null;
-        });
+        List<IntermediateCluster> intermediateClusters =
+                partitions.stream()
+                        .parallel()
+                        .flatMap(x -> blah(x).stream())
+                        .collect(Collectors.toList());
+        intermediateClusters.stream()
+                .parallel()
+                .forEach(
+                        x -> {
+                            x.getUnseenPoints().stream()
+                                    .parallel()
+                                    .filter(
+                                            unseenPoint ->
+                                                    Objects.isNull(
+                                                            clusterAssignment.get(unseenPoint)))
+                                    .forEach(canBeAssigned -> {
+
+                                    });
+                        });
+
         /**
-        //
-        //  finding all nearest neighbours of the current point
-        // array -> clusterPoint.getNearestNeighbours(clusterPoints, epsilon);
-        // check whether the current point is a qualfies as a CORE POINT
-        //isCorePoint(Collection<ClusterPoint> neighbours)
-        // iterate over the list
-        // case a - it does belong to the current cluster
-        // case a.1 - IF the neighbor is CORE POINT itself, union the point to the cluster using UNION AND LOCK --Refer Algorithm
-        // case a.2 - IF the neighbor is NOT CORE POINT itself, add it to the cluster and mark as a member
-        // case b - merge the current cluster with that point`s cluster
-        //
+         * // // finding all nearest neighbours of the current point // array ->
+         * clusterPoint.getNearestNeighbours(clusterPoints, epsilon); // check whether the current
+         * point is a qualfies as a CORE POINT //isCorePoint(Collection<ClusterPoint> neighbours) //
+         * iterate over the list // case a - it does belong to the current cluster // case a.1 - IF
+         * the neighbor is CORE POINT itself, union the point to the cluster using UNION AND LOCK
+         * --Refer Algorithm // case a.2 - IF the neighbor is NOT CORE POINT itself, add it to the
+         * cluster and mark as a member // case b - merge the current cluster with that point`s
+         * cluster //
          */
         return null;
     }
 
-    public void blah(List<ClusterPoint> partition) {
-        for (var clusterPoint : partition){
-            if (!clusterPoint.visited()) {
+    public List<IntermediateCluster> blah(List<ClusterPoint> partition) {
+        List<IntermediateCluster> in = new ArrayList<>();
+        for (var clusterPoint : partition) {
+            if (clusterPoint.visited()) {
                 continue;
             }
             Queue<ClusterPoint> neighbours =
                     new LinkedList<>(getNeighboursByVisiting(clusterPoint));
-            List<IntermediateCluster> clusters = new ArrayList<>();
+            List<ClusterPoint> clusters = new ArrayList<>();
+            List<ClusterPoint> notSeen = new ArrayList<>();
             if (!isCorePoint(neighbours)) {
                 clusterPoint.noise();
                 continue;
             }
             // The point is core point hence, get all its neighbours
+
+            clusterPoint.assignToCluster();
+            clusters.add(clusterPoint);
             while (!neighbours.isEmpty()) {
                 var neighbour = neighbours.poll();
-                if ((!neighbour.visited()) && (partition.contains(neighbour))) {
-                    List<ClusterPoint> neighbourOfNeighbours = getNeighboursByVisiting(neighbour);
+                if (!partition.contains(neighbour)) {
+                    notSeen.add(neighbour);
+                    continue;
                 }
-                else{
-                    // check the definition of the lists inside IntermediateCluster Class
-                    //add to unseen list
+                if (!neighbour.visited()) {
+                    if (partition.contains(neighbour)) {
+                        List<ClusterPoint> neighbourOfNeighbours =
+                                getNeighboursByVisiting(neighbour);
+                        if (isCorePoint(neighbourOfNeighbours)) {
+                            neighbours.addAll(neighbourOfNeighbours);
+                        }
+                    }
+                    if (!neighbour.isAssignedToCluster()) {
+                        neighbour.assignToCluster();
+                        clusters.add(neighbour);
+                        clusterAssignment.put(neighbour, clusterPoint);
+                    }
+                }
             }
-            }
-            List<DistanceMeasurable> newCluster = new ArrayList<>();
+            in.add(new IntermediateCluster(clusters, notSeen));
         }
+        return in;
     }
 
-
     private void partitionData() {
-        partitions = new ArrayList<>();
-        //creating a HashMap with all the elements
-        HashMap<String, String> tree1 = new HashMap<>(clusterPoints.size());
-        for(var temp: clusterPoints){
-            tree1.put(temp.toString(),null);
-        }
         // creating partitions of equal chunk size
         for (int start = 0, end = 0; end < clusterPoints.size(); start = start + chunkSize) {
             end = Math.min(clusterPoints.size(), start + chunkSize);
