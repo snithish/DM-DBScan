@@ -1,6 +1,7 @@
 package ulb.bdma.dm.impl;
 
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import ulb.bdma.dm.contract.DBScan;
@@ -44,22 +45,39 @@ public class ParallelDBScan extends DBScan {
         List<IntermediateCluster> intermediateClusters =
                 partitions.stream()
                         .parallel()
-                        .flatMap(x -> blah(x).stream())
+                        .flatMap(x -> naiveCluster(x).stream())
                         .collect(Collectors.toList());
+        var unseenPoints = intermediateClusters.stream()
+                .parallel()
+                .flatMap(
+                        x -> x.getUnseenPoints().stream()
+                                .parallel()
+                                .filter(
+                                        unseenPoint ->
+                                                Objects.isNull(
+                                                        clusterAssignment.get(unseenPoint)))).collect(Collectors.toSet());
+
+        Map<ClusterPoint, ReentrantLock> locks = new HashMap<>();
+        unseenPoints.forEach(unseenPoint -> locks.put(unseenPoint, new ReentrantLock()));
+        intermediateClusters.stream().map(IntermediateCluster::getCorePoint).forEach(x -> locks.put(x, new ReentrantLock()));
+
         intermediateClusters.stream()
                 .parallel()
                 .forEach(
-                        x -> {
-                            x.getUnseenPoints().stream()
+                        intermediateCluster -> {
+                            intermediateCluster.getUnseenPoints().stream()
                                     .parallel()
                                     .filter(
                                             unseenPoint ->
                                                     Objects.isNull(
                                                             clusterAssignment.get(unseenPoint)))
                                     .forEach(canBeAssigned -> {
-
+                                        if (Objects.hash(intermediateCluster.getCorePoint()) > Objects.hash(canBeAssigned)) {
+                                            lockAndAssignParent(locks, intermediateCluster.getCorePoint(), canBeAssigned);
+                                        }
                                     });
                         });
+
 
         /**
          * // // finding all nearest neighbours of the current point // array ->
@@ -74,7 +92,19 @@ public class ParallelDBScan extends DBScan {
         return null;
     }
 
-    public List<IntermediateCluster> blah(List<ClusterPoint> partition) {
+    private void lockAndAssignParent(Map<ClusterPoint, ReentrantLock> locks, ClusterPoint corePoint, ClusterPoint canBeAssigned) {
+        ReentrantLock pointLock = locks.get(canBeAssigned);
+        try {
+            while (!pointLock.tryLock()) ;
+            if (Objects.isNull(clusterAssignment.get(canBeAssigned))) {
+                clusterAssignment.put(canBeAssigned, corePoint);
+            }
+        } finally {
+            pointLock.unlock();
+        }
+    }
+
+    public List<IntermediateCluster> naiveCluster(List<ClusterPoint> partition) {
         List<IntermediateCluster> in = new ArrayList<>();
         for (var clusterPoint : partition) {
             if (clusterPoint.visited()) {
@@ -113,7 +143,7 @@ public class ParallelDBScan extends DBScan {
                     }
                 }
             }
-            in.add(new IntermediateCluster(clusters, notSeen));
+            in.add(new IntermediateCluster(clusterPoint, clusters, notSeen));
         }
         return in;
     }
