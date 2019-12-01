@@ -11,11 +11,13 @@ public class ClusterPoint {
     private boolean assignedToCluster;
     private DistanceMeasurable dataPoint;
     private State state;
+    private boolean corePoint;
 
     public ClusterPoint(DistanceMeasurable dataPoint) {
         id = UUID.randomUUID();
         this.dataPoint = dataPoint;
         this.state = State.UNVISITED;
+        this.corePoint = false;
     }
 
     public List<ClusterPoint> getNearestNeighbours(List<ClusterPoint> allPoints, float threshold) {
@@ -26,6 +28,14 @@ public class ClusterPoint {
 
     public DistanceMeasurable getDataPoint() {
         return dataPoint;
+    }
+
+    public void markAsCorePoint() {
+        this.corePoint = true;
+    }
+
+    public boolean isCorePoint() {
+        return corePoint;
     }
 
     public State getState() {

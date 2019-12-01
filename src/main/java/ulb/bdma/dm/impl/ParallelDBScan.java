@@ -94,13 +94,33 @@ public class ParallelDBScan extends DBScan {
         unseenPoints.stream()
                 .parallel()
                 .forEach(
-                        unseenPoint ->
+                        pointPair -> {
+                            if (pointPair.getUnseenPoint().isCorePoint()) {
                                 unionUsingLocks(
                                         locks,
-                                        unseenPoint.getCorePoint(),
-                                        unseenPoint.getUnseenPoint()));
+                                        pointPair.getCorePoint(),
+                                        pointPair.getUnseenPoint());
+                            } else {
+                                assignBorderPointToCluster(locks, pointPair);
+                            }
+                        });
 
         return identifyClusters();
+    }
+
+    private void assignBorderPointToCluster(
+            Map<ClusterPoint, ReentrantLock> locks, UnseenPoint pointPair) {
+        ClusterPoint x = pointPair.getUnseenPoint();
+        ReentrantLock lock = locks.get(x);
+        try {
+            while (!lock.tryLock()) {}
+            if (Objects.isNull(clusterAssignment.get(x))) {
+                clusterAssignment.put(x, pointPair.getCorePoint());
+                x.assignToCluster();
+            }
+        } finally {
+            lock.unlock();
+        }
     }
 
     private List<List<DistanceMeasurable>> identifyClusters() {
@@ -167,21 +187,6 @@ public class ParallelDBScan extends DBScan {
                 .collect(Collectors.toSet());
     }
 
-    private void lockAndAssignParent(
-            Map<ClusterPoint, ReentrantLock> locks,
-            ClusterPoint corePoint,
-            ClusterPoint canBeAssigned) {
-        ReentrantLock pointLock = locks.get(canBeAssigned);
-        try {
-            while (!pointLock.tryLock()) ;
-            if (Objects.isNull(clusterAssignment.get(canBeAssigned))) {
-                clusterAssignment.put(canBeAssigned, corePoint);
-            }
-        } finally {
-            pointLock.unlock();
-        }
-    }
-
     public List<IntermediateCluster> naiveCluster(List<ClusterPoint> partition) {
         List<IntermediateCluster> in = new ArrayList<>();
         for (var clusterPoint : partition) {
@@ -200,6 +205,7 @@ public class ParallelDBScan extends DBScan {
 
             clusterPoint.assignToCluster();
             clusters.add(clusterPoint);
+            clusterPoint.markAsCorePoint();
             while (!neighbours.isEmpty()) {
                 var neighbour = neighbours.poll();
                 if (!partition.contains(neighbour)) {
