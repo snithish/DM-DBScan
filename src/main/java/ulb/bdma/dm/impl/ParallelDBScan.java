@@ -124,7 +124,6 @@ public class ParallelDBScan extends DBScan {
     private void unionUsingLocks(
             Map<ClusterPoint, ReentrantLock> locks, ClusterPoint x, ClusterPoint y) {
         while (!getParent(x).equals(getParent(y))) {
-            System.out.println("trying to assign: " + x + " and " + y);
             if (getParent(x).hashCode() < getParent(y).hashCode()) {
                 x = assignParent(locks, x, y);
             } else {
