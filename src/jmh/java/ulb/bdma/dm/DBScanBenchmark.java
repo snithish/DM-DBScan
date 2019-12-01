@@ -10,6 +10,7 @@ import org.openjdk.jmh.infra.Blackhole;
 import ulb.bdma.dm.contract.DBScan;
 import ulb.bdma.dm.contract.DistanceMeasurable;
 import ulb.bdma.dm.impl.NaiveDBScan;
+import ulb.bdma.dm.impl.ParallelDBScan;
 import ulb.bdma.dm.models.Point;
 
 public class DBScanBenchmark {
@@ -42,6 +43,16 @@ public class DBScanBenchmark {
     @OutputTimeUnit(TimeUnit.SECONDS)
     public void measureNaiveDBScan(Blackhole blackhole, DataState data) {
         DBScan dbScan = new NaiveDBScan(data.epsilon, data.minimumPoints, data.dataPoints);
+        blackhole.consume(dbScan.cluster());
+    }
+
+    @Benchmark
+    @Warmup(iterations = 1)
+    @Fork(value = 3, warmups = 1)
+    @BenchmarkMode(Mode.AverageTime)
+    @OutputTimeUnit(TimeUnit.SECONDS)
+    public void measureParallelDBScan(Blackhole blackhole, DataState data) {
+        DBScan dbScan = new ParallelDBScan(data.epsilon, data.minimumPoints, data.dataPoints);
         blackhole.consume(dbScan.cluster());
     }
 }

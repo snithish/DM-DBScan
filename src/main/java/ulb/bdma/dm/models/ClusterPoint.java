@@ -75,4 +75,9 @@ public class ClusterPoint {
     public int hashCode() {
         return Objects.hash(id, dataPoint);
     }
+
+    @Override
+    public String toString() {
+        return "ClusterPoint{" + "id=" + id + ", dataPoint=" + dataPoint + '}';
+    }
 }

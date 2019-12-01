@@ -19,7 +19,7 @@ import ulb.bdma.dm.models.ClusterPoint;
  *     new scalable parallel DBSCAN algorithm using the disjoint-set data structure.</a>
  */
 public class ParallelDBScan extends DBScan {
-    int chunkSize = 2;
+    private int chunkSize;
     private List<List<ClusterPoint>> partitions;
     HashMap<ClusterPoint, ClusterPoint> clusterAssignment;
 
@@ -34,9 +34,44 @@ public class ParallelDBScan extends DBScan {
         super(epsilon, minimumPoints, dataPoints);
         // creating a HashMap with all the elements
         clusterAssignment = new HashMap<>(clusterPoints.size());
-        clusterPoints.stream().forEach(x -> clusterAssignment.put(x, null));
+        clusterPoints.forEach(x -> clusterAssignment.put(x, null));
         partitions = new ArrayList<>();
+        chunkSize = Math.max(2, dataPoints.size() / Runtime.getRuntime().availableProcessors());
         partitionData();
+    }
+
+    class UnseenPoint {
+        private ClusterPoint corePoint;
+        private ClusterPoint unseenPoint;
+
+        public UnseenPoint(ClusterPoint corePoint, ClusterPoint unseenPoint) {
+            this.corePoint = corePoint;
+            this.unseenPoint = unseenPoint;
+        }
+
+        public ClusterPoint getCorePoint() {
+            return corePoint;
+        }
+
+        public ClusterPoint getUnseenPoint() {
+            return unseenPoint;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            UnseenPoint that = (UnseenPoint) o;
+            return (Objects.equals(corePoint, that.corePoint)
+                            && Objects.equals(unseenPoint, that.unseenPoint))
+                    || Objects.equals(corePoint, that.unseenPoint)
+                            && Objects.equals(unseenPoint, that.corePoint);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(corePoint) + Objects.hash(unseenPoint);
+        }
     }
 
     @Override
@@ -46,59 +81,91 @@ public class ParallelDBScan extends DBScan {
                         .parallel()
                         .flatMap(x -> naiveCluster(x).stream())
                         .collect(Collectors.toList());
-        var unseenPoints =
-                intermediateClusters.stream()
-                        .parallel()
-                        .flatMap(
-                                x ->
-                                        x.getUnseenPoints().stream()
-                                                .parallel()
-                                                .filter(
-                                                        unseenPoint ->
-                                                                Objects.isNull(
-                                                                        clusterAssignment.get(
-                                                                                unseenPoint))))
-                        .collect(Collectors.toSet());
+
+        Set<UnseenPoint> unseenPoints = getUnseenPoints(intermediateClusters);
 
         Map<ClusterPoint, ReentrantLock> locks = new HashMap<>();
-        unseenPoints.forEach(unseenPoint -> locks.put(unseenPoint, new ReentrantLock()));
-        intermediateClusters.stream()
-                .map(IntermediateCluster::getCorePoint)
-                .forEach(x -> locks.put(x, new ReentrantLock()));
+        unseenPoints.forEach(
+                unseenPoint -> {
+                    locks.put(unseenPoint.getCorePoint(), new ReentrantLock());
+                    locks.put(unseenPoint.getUnseenPoint(), new ReentrantLock());
+                });
 
-        intermediateClusters.stream()
+        unseenPoints.stream()
                 .parallel()
                 .forEach(
-                        intermediateCluster -> {
-                            intermediateCluster.getUnseenPoints().stream()
-                                    .parallel()
-                                    .filter(
-                                            unseenPoint ->
-                                                    Objects.isNull(
-                                                            clusterAssignment.get(unseenPoint)))
-                                    .forEach(
-                                            canBeAssigned -> {
-                                                if (Objects.hash(intermediateCluster.getCorePoint())
-                                                        > Objects.hash(canBeAssigned)) {
-                                                    lockAndAssignParent(
-                                                            locks,
-                                                            intermediateCluster.getCorePoint(),
-                                                            canBeAssigned);
-                                                }
-                                            });
-                        });
+                        unseenPoint ->
+                                unionUsingLocks(
+                                        locks,
+                                        unseenPoint.getCorePoint(),
+                                        unseenPoint.getUnseenPoint()));
 
-        /**
-         * // // finding all nearest neighbours of the current point // array ->
-         * clusterPoint.getNearestNeighbours(clusterPoints, epsilon); // check whether the current
-         * point is a qualfies as a CORE POINT //isCorePoint(Collection<ClusterPoint> neighbours) //
-         * iterate over the list // case a - it does belong to the current cluster // case a.1 - IF
-         * the neighbor is CORE POINT itself, union the point to the cluster using UNION AND LOCK
-         * --Refer Algorithm // case a.2 - IF the neighbor is NOT CORE POINT itself, add it to the
-         * cluster and mark as a member // case b - merge the current cluster with that point`s
-         * cluster //
-         */
-        return null;
+        return identifyClusters();
+    }
+
+    private List<List<DistanceMeasurable>> identifyClusters() {
+        Map<ClusterPoint, List<DistanceMeasurable>> clusters = new HashMap<>();
+        clusterAssignment
+                .keySet()
+                .forEach(
+                        key -> {
+                            ClusterPoint parent = key;
+                            while (!getParent(parent).equals(parent)) {
+                                parent = getParent(parent);
+                            }
+                            if (Objects.isNull(clusters.get(parent))) {
+                                clusters.put(parent, new ArrayList<>());
+                            }
+                            clusters.get(parent).add(key.getDataPoint());
+                        });
+        return new ArrayList<>(clusters.values());
+    }
+
+    private void unionUsingLocks(
+            Map<ClusterPoint, ReentrantLock> locks, ClusterPoint x, ClusterPoint y) {
+        while (!getParent(x).equals(getParent(y))) {
+            System.out.println("trying to assign: " + x + " and " + y);
+            if (getParent(x).hashCode() < getParent(y).hashCode()) {
+                x = assignParent(locks, x, y);
+            } else {
+                y = assignParent(locks, y, x);
+            }
+        }
+    }
+
+    public ClusterPoint assignParent(
+            Map<ClusterPoint, ReentrantLock> locks, ClusterPoint node, ClusterPoint parent) {
+        if (node.equals(getParent(node))) {
+            ReentrantLock lock = locks.get(getParent(node));
+            try {
+                while (!lock.tryLock()) {}
+                if (node.equals(getParent(node))) {
+                    clusterAssignment.put(node, getParent(parent));
+                }
+            } finally {
+                lock.unlock();
+            }
+        }
+        return getParent(node);
+    }
+
+    private ClusterPoint getParent(ClusterPoint point) {
+        return Optional.ofNullable(clusterAssignment.get(point)).orElse(point);
+    }
+
+    private Set<UnseenPoint> getUnseenPoints(List<IntermediateCluster> intermediateClusters) {
+        return intermediateClusters.stream()
+                .parallel()
+                .flatMap(
+                        x ->
+                                x.getUnseenPoints().stream()
+                                        .parallel()
+                                        .filter(
+                                                unseenPoint ->
+                                                        Objects.isNull(
+                                                                clusterAssignment.get(unseenPoint)))
+                                        .map(u -> new UnseenPoint(x.getCorePoint(), u)))
+                .collect(Collectors.toSet());
     }
 
     private void lockAndAssignParent(
