@@ -73,6 +73,6 @@ public class ClusterPoint {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, assignedToCluster, dataPoint, state);
+        return Objects.hash(id, dataPoint);
     }
 }
