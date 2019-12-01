@@ -1,7 +1,6 @@
 package ulb.bdma.dm.contract;
 
 import java.util.List;
-
 import ulb.bdma.dm.models.ClusterPoint;
 
 public class IntermediateCluster {
@@ -9,7 +8,10 @@ public class IntermediateCluster {
     private List<ClusterPoint> tempCluster;
     private List<ClusterPoint> unseenPoints;
 
-    public IntermediateCluster(ClusterPoint corePoint, List<ClusterPoint> tempCluster, List<ClusterPoint> unseenPoints) {
+    public IntermediateCluster(
+            ClusterPoint corePoint,
+            List<ClusterPoint> tempCluster,
+            List<ClusterPoint> unseenPoints) {
         this.corePoint = corePoint;
         this.tempCluster = tempCluster;
         this.unseenPoints = unseenPoints;
